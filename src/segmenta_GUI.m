@@ -22,7 +22,7 @@ function varargout = segmenta_GUI(varargin)
 
 % Edit the above text to modify the response to help segmenta_GUI
 
-% Last Modified by GUIDE v2.5 11-Feb-2023 17:12:02
+% Last Modified by GUIDE v2.5 18-Apr-2024 10:57:41
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -55,25 +55,19 @@ function segmenta_GUI_OpeningFcn(hObject, eventdata, handles, varargin)
 % ********************* Parâmetros gerais editáveis:  *********************
 % 
 % Seleciona a PC que será lida no formato ".pcd"
-handles.PcToRead= 'C:\Projetos\Matlab';
+handles.PcToRead= 'D:\Moacir\ensaios';
 
 % Seleciona o path onde a PC segmantada será salva:
-handles.pathBase= 'C:\Projetos\Matlab\Experimentos';
-handles.pathSavePC= "";
+handles.pathBase= 'D:\Moacir\ensaios';
+handles.pathSavePC= 'D:\Moacir\ensaios';
 handles.pathReadPC= handles.pathBase;
 handles.nameFolderSavePcSeg= 'segmentada'; 
 
 %
 % Parâmetros para segmentação das PCs para definir o ROI do plano, esses 
 % parâmetros são usados na função pcsegdist().
-handles.valMinDistance= str2double(handles.txtMinDistance.String); %0.05; 
-handles.valMinPoints= str2double(handles.txtNumMinPontosPorCluster.String); %500;
-handles.valMaxPoints= str2double(handles.txtNumMaxPontosPorCluster.String); %1500;
-
-% Define os thresholds de distância e angular para segmantar a PC e definir 
-% um ROI, esses parâmetros são usados na função segmentaLidarData().
-handles.valThresholdMaxDistance= str2double(handles.txtThresholdMaxDistance.String);
-handles.valThresholdMinDistance= str2double(handles.txtThresholdMinDistance.String);
+% handles.valMinPoints= str2double(handles.txtNumMinPontosPorCluster.String); %500;
+% handles.valMaxPoints= str2double(handles.txtNumMaxPontosPorCluster.String); %1500;
 
 
 %Se "handles.habFunction_SegmentaLidarData" estiver el nivel alto será habilitada
@@ -156,8 +150,33 @@ function btSegmentar_Callback(hObject, eventdata, handles)
 % hObject    handle to btSegmentar (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-handles= fSegmentaPC(handles);
+%handles= fSegmentaPC(handles);
 
+% Para usar o close all é necessário mudar o HandleVisibility do
+% painelprincial para "off". Assim, quando for finalizado, antes será necessário
+% tornar este parametro novamente para "on" e depois executar close all.
+close all;
+
+infoFolder= dir(fullfile(handles.pathReadPC, '*.pcd'));
+numPCs= length(infoFolder(not([infoFolder.isdir])));
+
+handles.pcOriginal= pcread(handles.PcToRead);
+% Filtra o ruído da nuvem de pontos de referência.
+% pcDenoised= pcdenoise(pc);
+
+% Efetua um procedimento de filtragem utilizando a distância ecuclidiana
+% entre o ponto XYZ e a origem do LiDAR, usa threshold de distânica mínima
+% e máxima definidas nas viariáveis:
+% - handles.valThresholdMinDistance
+% - handles.valThresholdMaxDistance.
+handles.pcThresholded= fPcFiltraDistancia(handles.pcOriginal, ...
+                                          handles.min_X, handles.max_X, ...
+                                          handles.min_Y, handles.max_Y, ...
+                                          handles.min_Z, handles.max_Z);
+
+handles.pbSalvaPcFormatoPcd.Enable= 'on';
+handles.pbShowPcSegmentada.Enable= 'on';
+handles.pbSalvaPcFormatoTxt.Enable= 'on';
 
 % Update handles structure
 guidata(hObject, handles);
@@ -210,231 +229,6 @@ end
 
 
 
-function txtNumMinPontosPorCluster_Callback(hObject, eventdata, handles)
-% hObject    handle to txtNumMinPontosPorCluster (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hints: get(hObject,'String') returns contents of txtNumMinPontosPorCluster as text
-%        str2double(get(hObject,'String')) returns contents of txtNumMinPontosPorCluster as a double
-str= get(hObject, 'String');
-handles.valMinPoints= str2num(str);
-
-% Update handles structure
-guidata(hObject, handles);
-
-
-% --- Executes during object creation, after setting all properties.
-function txtNumMinPontosPorCluster_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to txtNumMinPontosPorCluster (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
-
-% Hint: edit controls usually have a white background on Windows.
-%       See ISPC and COMPUTER.
-if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-    set(hObject,'BackgroundColor','white');
-end
-set(hObject, 'Enable', 'off');
-
-
-function txtMinDistance_Callback(hObject, eventdata, handles)
-% hObject    handle to txtMinDistance (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hints: get(hObject,'String') returns contents of txtMinDistance as text
-%        str2double(get(hObject,'String')) returns contents of txtMinDistance as a double
-str= get(hObject, 'String');
-handles.valMinDistance= str2num(str);
-% Update handles structure
-guidata(hObject, handles);
-
-
-% --- Executes during object creation, after setting all properties.
-function txtMinDistance_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to txtMinDistance (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
-
-% Hint: edit controls usually have a white background on Windows.
-%       See ISPC and COMPUTER.
-if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-    set(hObject,'BackgroundColor','white');
-end
-set(hObject, 'Enable', 'off');
-
-
-% --- Executes on button press in checkShowPCs.
-function checkShowPCs_Callback(hObject, eventdata, handles)
-% hObject    handle to checkShowPCs (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hint: get(hObject,'Value') returns toggle state of checkShowPCs
-handles.showPcSegmentada= get(hObject,'Value');
-
-% Update handles structure
-guidata(hObject, handles);
-
-% --- Executes during object creation, after setting all properties.
-function checkShowPCs_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to checkShowPCs (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
-handles.showPcSegmentada= get(hObject,'Value');
-
-% Update handles structure
-guidata(hObject, handles);
-
-
-% --- Executes on button press in checkSelectSegByThreshold.
-function checkSelectSegByThreshold_Callback(hObject, eventdata, handles)
-% hObject    handle to checkSelectSegByThreshold (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hint: get(hObject,'Value') returns toggle state of checkSelectSegByThreshold
-if (hObject.Value)
-    % Habilita o uso da função de segmentação do Matlab pcsegdist():
-    handles.txtMinDistance.Enable= 'on';
-    handles.txtNumMinPontosPorCluster.Enable= 'on';
-    handles.txtNumMaxPontosPorCluster.Enable= 'on';
-    handles.txtThresholdMinDistance.Enable= 'off';
-    handles.txtThresholdMaxDistance.Enable= 'off';
-    handles.habSegmentaPorThreshold= 0;
-else
-    % Habilita o uso da função de segmentação usando o threshold de
-    % distancia m[inima e máxima:
-    handles.txtMinDistance.Enable= 'off';
-    handles.txtNumMinPontosPorCluster.Enable= 'off';
-    handles.txtNumMaxPontosPorCluster.Enable= 'off';
-    handles.txtThresholdMinDistance.Enable= 'on';
-    handles.txtThresholdMaxDistance.Enable= 'on';
-    handles.habSegmentaPorThreshold= 1; 
-end
-
-% Update handles structure
-guidata(hObject, handles);
-
-function txtThresholdMinDistance_Callback(hObject, eventdata, handles)
-% hObject    handle to txtThresholdMinDistance (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hints: get(hObject,'String') returns contents of txtThresholdMinDistance as text
-%        str2double(get(hObject,'String')) returns contents of txtThresholdMinDistance as a double
-str= get(hObject, 'String');
-handles.valThresholdMinDistance= str2double(str);
-% Update handles structure
-guidata(hObject, handles);
-
-
-% --- Executes during object creation, after setting all properties.
-function txtThresholdMinDistance_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to txtThresholdMinDistance (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
-
-% Hint: edit controls usually have a white background on Windows.
-%       See ISPC and COMPUTER.
-if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-    set(hObject,'BackgroundColor','white');
-end
-set(hObject,'String','0.5');
-
-
-
-function txtThresholdMaxDistance_Callback(hObject, eventdata, handles)
-% hObject    handle to txtThresholdMaxDistance (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hints: get(hObject,'String') returns contents of txtThresholdMaxDistance as text
-%        str2double(get(hObject,'String')) returns contents of txtThresholdMaxDistance as a double
-str= get(hObject, 'String');
-handles.valThresholdMaxDistance= str2double(str);
-% Update handles structure
-guidata(hObject, handles);
-
-
-% --- Executes during object creation, after setting all properties.
-function txtThresholdMaxDistance_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to txtThresholdMaxDistance (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
-
-% Hint: edit controls usually have a white background on Windows.
-%       See ISPC and COMPUTER.
-if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-    set(hObject,'BackgroundColor','white');
-end
-set(hObject,'String','1.2');
-
-
-% --- Executes on button press in checkSalvaPcSegmantada.
-function checkSalvaPcSegmantada_Callback(hObject, eventdata, handles)
-% hObject    handle to checkSalvaPcSegmantada (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-% Hint: get(hObject,'Value') returns toggle state of checkSalvaPcSegmantada
-
-handles.HabSalvarPcSeg= hObject.Value;
-
-% Update handles structure
-guidata(hObject, handles);
-
-
-
-% --- Executes during object creation, after setting all properties.
-function checkSalvaPcSegmantada_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to checkSalvaPcSegmantada (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
-handles.HabSalvarPcSeg= 0;
-
-% Update handles structure
-guidata(hObject, handles);
-
-
-function txtNumMaxPontosPorCluster_Callback(hObject, eventdata, handles)
-% hObject    handle to txtNumMaxPontosPorCluster (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hints: get(hObject,'String') returns contents of txtNumMaxPontosPorCluster as text
-%        str2double(get(hObject,'String')) returns contents of txtNumMaxPontosPorCluster as a double
-str= get(hObject, 'String');
-handles.valMaxPoints= str2num(str);
-
-% Update handles structure
-guidata(hObject, handles);
-
-% --- Executes during object creation, after setting all properties.
-function txtNumMaxPontosPorCluster_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to txtNumMaxPontosPorCluster (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
-
-% Hint: edit controls usually have a white background on Windows.
-%       See ISPC and COMPUTER.
-if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-    set(hObject,'BackgroundColor','white');
-end
-set(hObject, 'Enable', 'off');
-
-
-% --- Executes during object creation, after setting all properties.
-function checkSelectSegByThreshold_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to checkSelectSegByThreshold (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
-set(hObject, 'Value', 0); 
-% Inicia habilitando o uso da função de segmentação por threshold de
-% distância mínima e máxima:
-handles.habSegmentaPorThreshold= 1;
-% Update handles structure
-guidata(hObject, handles);
 
 % --- Executes when panelMain is resized.
 function panelMain_SizeChangedFcn(hObject, eventdata, handles)
@@ -481,3 +275,341 @@ end
 % Update handles structure
 guidata(hObject, handles);
 
+
+function editDistMinX_Callback(hObject, eventdata, handles)
+% hObject    handle to editDistMinX (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: get(hObject,'String') returns contents of editDistMinX as text
+%        str2double(get(hObject,'String')) returns contents of editDistMinX as a double
+
+handles.min_X= str2num(hObject.String);
+
+% Update handles structure
+guidata(hObject, handles);
+
+
+% --- Executes during object creation, after setting all properties.
+function editDistMinX_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to editDistMinX (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: edit controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+handles.min_X= str2num(hObject.String);
+
+% Update handles structure
+guidata(hObject, handles);
+
+
+
+function editDistMaxX_Callback(hObject, eventdata, handles)
+% hObject    handle to editDistMaxX (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: get(hObject,'String') returns contents of editDistMaxX as text
+%        str2double(get(hObject,'String')) returns contents of editDistMaxX as a double
+
+handles.max_X= str2num(hObject.String);
+
+% Update handles structure
+guidata(hObject, handles);
+
+
+
+% --- Executes during object creation, after setting all properties.
+function editDistMaxX_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to editDistMaxX (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: edit controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+handles.max_X= str2num(hObject.String);
+
+% Update handles structure
+guidata(hObject, handles);
+
+
+
+function editDistMinY_Callback(hObject, eventdata, handles)
+% hObject    handle to editDistMinY (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: get(hObject,'String') returns contents of editDistMinY as text
+%        str2double(get(hObject,'String')) returns contents of editDistMinY as a double
+
+handles.min_Y= str2num(hObject.String);
+
+% Update handles structure
+guidata(hObject, handles);
+
+
+% --- Executes during object creation, after setting all properties.
+function editDistMinY_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to editDistMinY (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: edit controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+handles.min_Y= str2num(hObject.String);
+
+% Update handles structure
+guidata(hObject, handles);
+
+
+function editDistMaxY_Callback(hObject, eventdata, handles)
+% hObject    handle to editDistMaxY (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: get(hObject,'String') returns contents of editDistMaxY as text
+%        str2double(get(hObject,'String')) returns contents of editDistMaxY as a double
+
+handles.max_Y= str2num(hObject.String);
+
+% Update handles structure
+guidata(hObject, handles);
+
+
+% --- Executes during object creation, after setting all properties.
+function editDistMaxY_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to editDistMaxY (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: edit controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+handles.max_Y= str2num(hObject.String);
+
+% Update handles structure
+guidata(hObject, handles);
+
+
+
+function editDistMinZ_Callback(hObject, eventdata, handles)
+% hObject    handle to editDistMinZ (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: get(hObject,'String') returns contents of editDistMinZ as text
+%        str2double(get(hObject,'String')) returns contents of editDistMinZ as a double
+
+handles.min_Z= str2num(hObject.String);
+
+% Update handles structure
+guidata(hObject, handles);
+
+
+% --- Executes during object creation, after setting all properties.
+function editDistMinZ_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to editDistMinZ (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: edit controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+handles.min_Z= str2num(hObject.String);
+
+% Update handles structure
+guidata(hObject, handles);
+
+
+function editDistMaxZ_Callback(hObject, eventdata, handles)
+% hObject    handle to editDistMaxZ (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: get(hObject,'String') returns contents of editDistMaxZ as text
+%        str2double(get(hObject,'String')) returns contents of editDistMaxZ as a double
+
+handles.max_Z= str2num(hObject.String);
+
+% Update handles structure
+guidata(hObject, handles);
+
+
+% --- Executes during object creation, after setting all properties.
+function editDistMaxZ_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to editDistMaxZ (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: edit controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+handles.max_Z= str2num(hObject.String);
+
+% Update handles structure
+guidata(hObject, handles);
+
+
+% --- Executes during object creation, after setting all properties.
+function statictxtThresoldMinDistance_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to statictxtThresoldMinDistance (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+
+% --- Executes on button press in pbSalvaPcFormatoPcd.
+function pbSalvaPcFormatoPcd_Callback(hObject, eventdata, handles)
+% hObject    handle to pbSalvaPcFormatoPcd (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+handles.pathSavePC= fSalvaPCFormatoPcd(handles.pcThresholded, handles.pathSavePC, handles.nameFolderSavePcSeg, handles.file);
+
+msg= sprintf('PC salva ok!');
+figMsg= msgbox(msg);
+uiwait(figMsg); 
+
+% Update handles structure
+guidata(hObject, handles);
+
+
+
+% --- Executes on button press in pbShowPcSegmentada.
+function pbShowPcSegmentada_Callback(hObject, eventdata, handles)
+% hObject    handle to pbShowPcSegmentada (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+fShowPcFiltradaPorDistancia(handles.pcOriginal, handles.pcThresholded);
+
+% Update handles structure
+guidata(hObject, handles);
+
+
+% --- Executes on button press in pbSalvaPcFormatoTxt.
+function pbSalvaPcFormatoTxt_Callback(hObject, eventdata, handles)
+% hObject    handle to pbSalvaPcFormatoTxt (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+handles.pathSavePC= fSalvaPCFormatoTxt(handles.pcThresholded, handles.pathSavePC, handles.nameFolderSavePcSeg, handles.file);
+
+% Update handles structure
+guidata(hObject, handles);
+
+
+
+% --- Executes on button press in pbExibirPCTxt.
+function pbExibirPCTxt_Callback(hObject, eventdata, handles)
+% hObject    handle to pbExibirPCTxt (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+close all;
+
+
+if handles.habExibirDuasPCs 
+    path= fullfile(handles.pathReadPC,'*.txt');
+    [handles.file, handles.path] = uigetfile(path);
+    if ~handles.path
+        msg= sprintf('Escolha do arquivo foi cancelada!');
+        msgbox(msg,'','warn');
+        return;
+    end
+    handles.PcToRead= fullfile(handles.path, handles.file);
+    pc1= load(handles.PcToRead);
+    
+    [handles.file, handles.path] = uigetfile(path);
+    if ~handles.path
+        msg= sprintf('Escolha do arquivo foi cancelada!');
+        msgbox(msg,'','warn');
+        return;
+    end
+    handles.PcToRead= fullfile(handles.path, handles.file);
+    pc2= load(handles.PcToRead);
+    
+    % Plota as PCs:
+    fig= figure;
+    fig.Position= [100, 300, 1200, 1000];
+    plot3(pc1(:,1),pc1(:,2),pc1(:,3),'or');
+    hold on;
+    xlabel('X');
+    ylabel('Y');
+    zlabel('Z');
+    axis equal;
+    grid on;
+    plot3(pc2(:,1),pc2(:,2),pc2(:,3),'.b');
+else
+    path= fullfile(handles.pathReadPC,'*.txt');
+    [handles.file, handles.path] = uigetfile(path);
+    if ~handles.path
+        msg= sprintf('Escolha do arquivo foi cancelada!');
+        msgbox(msg,'','warn');
+        return;
+    end 
+    handles.PcToRead= fullfile(handles.path, handles.file);
+    pc1= load(handles.PcToRead);
+    
+    % Plota as PCs:
+    fig= figure;
+    fig.Position= [100, 300, 1200, 1000];
+    plot3(pc1(:,1),pc1(:,2),pc1(:,3),'.r');
+    xlabel('X');
+    ylabel('Y');
+    zlabel('Z');
+    axis equal;
+    grid on;
+end
+
+handles.pathReadPC= handles.path;
+
+% Update handles structure
+guidata(hObject, handles);
+
+
+% --- Executes on button press in radiobutton2.
+function radiobutton2_Callback(hObject, eventdata, handles)
+% hObject    handle to radiobutton2 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hint: get(hObject,'Value') returns toggle state of radiobutton2
+
+handles.habExibirDuasPCs= hObject.Value;
+
+% Update handles structure
+guidata(hObject, handles);
+
+
+
+% --- Executes during object creation, after setting all properties.
+function radiobutton2_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to radiobutton2 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+handles.habExibirDuasPCs= hObject.Value;
+
+% Update handles structure
+guidata(hObject, handles);
