@@ -1,5 +1,7 @@
-function fShowPcFiltradaPorDistancia(pcOriginal, pcThreshold, handles)
-    
+function fShowPcFiltradaPorDistancia(pcOriginal, pcThreshold)
+ 
+close all;
+
 % Cria um novo mapa de cores para os clusters
 fig= figure;
 
@@ -16,11 +18,11 @@ zlabel('Z (m)');
 subplot(1,2,2);
 pcshow(pcThreshold.Location);
 numPontos= length(pcThreshold.Location); 
-msg= sprintf('PC com %d pontos foi filtrada usando threshold: Min= %0.2fm e Max= %0.2fm', numPontos, handles.valThresholdMinDistance, handles.valThresholdMaxDistance);
+msg= sprintf(' Filtrada PC com %d pontos', numPontos);
 title(msg);
 xlabel('X (m)');
 ylabel('Y (m)');
 zlabel('Z (m)');
-fig.Position= [10, 50, 1500, 700];
+fig.Position= [100, 200, 1500, 1100];
 
 end
