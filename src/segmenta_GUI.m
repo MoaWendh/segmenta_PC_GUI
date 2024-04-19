@@ -486,10 +486,6 @@ function pbSalvaPcFormatoPcd_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 handles.pathSavePC= fSalvaPCFormatoPcd(handles.pcThresholded, handles.pathSavePC, handles.nameFolderSavePcSeg, handles.file);
 
-msg= sprintf('PC salva ok!');
-figMsg= msgbox(msg);
-uiwait(figMsg); 
-
 % Update handles structure
 guidata(hObject, handles);
 
