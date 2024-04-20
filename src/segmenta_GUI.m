@@ -22,7 +22,7 @@ function varargout = segmenta_GUI(varargin)
 
 % Edit the above text to modify the response to help segmenta_GUI
 
-% Last Modified by GUIDE v2.5 18-Apr-2024 10:57:41
+% Last Modified by GUIDE v2.5 20-Apr-2024 16:00:45
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -609,3 +609,77 @@ handles.habExibirDuasPCs= hObject.Value;
 
 % Update handles structure
 guidata(hObject, handles);
+
+
+% --- Executes on button press in pbConvertePcParaPadraoXYZ.
+function pbConvertePcParaPadraoXYZ_Callback(hObject, eventdata, handles)
+% hObject    handle to pbConvertePcParaPadraoXYZ (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+clc;
+
+path= fullfile(handles.pathBase,'*.pcd');
+[nameFile, pathAux] = uigetfile(path, 'MultiSelect', 'on');
+
+if ~pathAux
+   msg= sprintf('Abertura das PCs foi cancelada!');
+   msgbox(msg, '', 'warn');
+   return;
+end
+
+% Chama a função que conevrte uma pC do LiDAR para o formato XYZ do sistema
+% estéreo. A PC será salva no formato .txt:
+fGeraPcLidarNoFormatoXYZEStereo(nameFile, pathAux, handles.ConvertePcParaMilimetros);
+
+% Atualiza o path de leitura:
+handles.pathReadPC= pathAux;
+
+% Update handles structure
+guidata(hObject, handles);
+
+
+% --- Executes on button press in rdConvertePcParaPadraoXYZ.
+function rdConvertePcParaPadraoXYZ_Callback(hObject, eventdata, handles)
+% hObject    handle to rdConvertePcParaPadraoXYZ (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hint: get(hObject,'Value') returns toggle state of rdConvertePcParaPadraoXYZ
+
+if hObject.Value
+    handles.pbConvertePcParaPadraoXYZ.Enable= 'on';
+    handles.rdSavePcToMilimeters.Enable= 'on';
+else
+    handles.pbConvertePcParaPadraoXYZ.Enable= 'off';
+    handles.rdSavePcToMilimeters.Enable= 'off';    
+end
+
+% Update handles structure
+guidata(hObject, handles);
+
+
+% --- Executes on button press in rdSavePcToMilimeters.
+function rdSavePcToMilimeters_Callback(hObject, eventdata, handles)
+% hObject    handle to rdSavePcToMilimeters (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hint: get(hObject,'Value') returns toggle state of rdSavePcToMilimeters
+
+handles.ConvertePcParaMilimetros= hObject.Value;
+
+% Update handles structure
+guidata(hObject, handles);
+
+
+% --- Executes during object creation, after setting all properties.
+function rdSavePcToMilimeters_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to rdSavePcToMilimeters (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+handles.ConvertePcParaMilimetros= hObject.Value;
+
+% Update handles structure
+guidata(hObject, handles);
+
