@@ -55,11 +55,11 @@ function segmenta_GUI_OpeningFcn(hObject, eventdata, handles, varargin)
 % ********************* Parâmetros gerais editáveis:  *********************
 % 
 % Seleciona a PC que será lida no formato ".pcd"
-handles.PcToRead= 'D:\Moacir\ensaios';
+handles.PcToRead= 'D:\Moacir\ensaios\Vigente\LiDAR_Estereo\Esfera\09_04_2024_C\LiDAR\mult\Rotacionada';
 
 % Seleciona o path onde a PC segmantada será salva:
-handles.pathBase= 'D:\Moacir\ensaios';
-handles.pathSavePC= 'D:\Moacir\ensaios';
+handles.pathBase= 'D:\Moacir\ensaios\Vigente\LiDAR_Estereo\Esfera\09_04_2024_C\LiDAR\mult\Rotacionada';
+handles.pathSavePC= 'D:\Moacir\ensaios\Vigente\LiDAR_Estereo\Esfera\09_04_2024_C\LiDAR\mult\Rotacionada';
 handles.pathReadPC= handles.pathBase;
 handles.nameFolderSavePcSeg= 'segmentada'; 
 
