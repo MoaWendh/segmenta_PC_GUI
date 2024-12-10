@@ -22,7 +22,7 @@ function varargout = segmenta_GUI(varargin)
 
 % Edit the above text to modify the response to help segmenta_GUI
 
-% Last Modified by GUIDE v2.5 20-Apr-2024 16:00:45
+% Last Modified by GUIDE v2.5 26-Oct-2024 00:17:24
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -54,14 +54,25 @@ function segmenta_GUI_OpeningFcn(hObject, eventdata, handles, varargin)
 
 % ********************* Parâmetros gerais editáveis:  *********************
 % 
-% Seleciona a PC que será lida no formato ".pcd"
-handles.PcToRead= 'D:\Moacir\ensaios\Vigente\LiDAR_Estereo\Esfera\09_04_2024_C\LiDAR\mult\Rotacionada';
+usandoNoteBook= 1;
+if usandoNoteBook
+    % Seleciona a PC que será lida no formato ".pcd"
+    handles.PcToRead= 'C:\Users\mwend\OneDrive\Particulares\Ensaios\LiDAR_Stereo\dados_vigentes\LiDAR_Estereo\Esfera\09_04_2024_A\LiDAR\mult\Rotacionada\segmentada';
 
-% Seleciona o path onde a PC segmantada será salva:
-handles.pathBase= 'D:\Moacir\ensaios\Vigente\LiDAR_Estereo\Esfera\09_04_2024_C\LiDAR\mult\Rotacionada';
-handles.pathSavePC= 'D:\Moacir\ensaios\Vigente\LiDAR_Estereo\Esfera\09_04_2024_C\LiDAR\mult\Rotacionada';
-handles.pathReadPC= handles.pathBase;
-handles.nameFolderSavePcSeg= 'segmentada'; 
+    handles.pathBase= 'C:\Users\mwend\OneDrive\Particulares\Ensaios\LiDAR_Stereo\dados_vigentes\LiDAR_Estereo\Cilindro\05_12_2024_A\LiDAR\mult\Rotacionada';
+    handles.pathSavePC= 'C:\Users\mwend\OneDrive\Particulares\Ensaios\LiDAR_Stereo\dados_vigentes\LiDAR_Estereo\Cilindro\05_12_2024_A\LiDAR\mult\Rotacionada';
+    handles.pathReadPC= handles.pathBase;
+    handles.nameFolderSavePcSeg= 'segmentada'; 
+else
+    % Seleciona a PC que será lida no formato ".pcd"
+    handles.PcToRead= 'C:\Users\mwend\OneDrive\Particulares\Ensaios\LiDAR_Stereo\dados_vigentes\LiDAR_Estereo\Esfera\09_04_2024_A\LiDAR\mult\Rotacionada\segmentada';
+
+    % Seleciona o path onde a PC segmantada será salva:
+    handles.pathBase= 'C:\Users\mwend\OneDrive\Particulares\Ensaios\LiDAR_Stereo\dados_vigentes\LiDAR_Estereo\Esfera\09_04_2024_A\LiDAR\mult\Rotacionada\segmentada';
+    handles.pathSavePC= 'C:\Users\mwend\OneDrive\Particulares\Ensaios\LiDAR_Stereo\dados_vigentes\LiDAR_Estereo\Esfera\09_04_2024_A\LiDAR\mult\Rotacionada\segmentada\ApenasEsferas';
+    handles.pathReadPC= handles.pathBase;
+    handles.nameFolderSavePcSeg= 'segmentada';    
+end
 
 %
 % Parâmetros para segmentação das PCs para definir o ROI do plano, esses 
@@ -112,6 +123,11 @@ function btPathReadPC_Callback(hObject, eventdata, handles)
 % hObject    handle to btPathReadPC (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
+
+close all;
+
+handles= fReinicializaTodasAsVariaveis(handles);
+
 path= fullfile(handles.pathBase,'*.pcd');
 [handles.file, handles.path] = uigetfile(path);
 handles.PcToRead= fullfile(handles.path, handles.file);
@@ -173,7 +189,7 @@ handles.pcThresholded= fPcFiltraDistancia(handles.pcOriginal, ...
                                           handles.min_X, handles.max_X, ...
                                           handles.min_Y, handles.max_Y, ...
                                           handles.min_Z, handles.max_Z);
-
+                                      
 handles.pbSalvaPcFormatoPcd.Enable= 'on';
 handles.pbShowPcSegmentada.Enable= 'on';
 handles.pbSalvaPcFormatoTxt.Enable= 'on';
@@ -258,6 +274,8 @@ path= fullfile(handles.pathBase,'*.pcd');
 [files pathBase]= uigetfile(path,'Selecione uma PC para Visualização.');
 fullPathPC= fullfile(pathBase, files);
 
+tamMarker= 100;
+
 if files
     handles.pathBase= pathBase;
     % Faz a leitura da PC:
@@ -265,7 +283,7 @@ if files
 
     % Exine a PC lida:
     figure; 
-    pcshow(pc.Location);
+    pcshow(pc.Location, 'MarkerSize', tamMarker);
 
     xlabel('X (m)');
     ylabel('Y (m)');
@@ -497,7 +515,7 @@ function pbShowPcSegmentada_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-fShowPcFiltradaPorDistancia(handles.pcOriginal, handles.pcThresholded);
+fShowPcFiltradaPorDistancia(handles.pcOriginal, handles.pcThresholded, handles.ExibeApenasPcSegmentada);
 
 % Update handles structure
 guidata(hObject, handles);
@@ -682,4 +700,33 @@ handles.ConvertePcParaMilimetros= hObject.Value;
 
 % Update handles structure
 guidata(hObject, handles);
+
+
+
+% --- Executes on button press in rdExibeApenasPcSegmentada.
+function rdExibeApenasPcSegmentada_Callback(hObject, eventdata, handles)
+% hObject    handle to rdExibeApenasPcSegmentada (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hint: get(hObject,'Value') returns toggle state of rdExibeApenasPcSegmentada
+
+handles.ExibeApenasPcSegmentada= hObject.Value;
+
+% Update handles structure
+guidata(hObject, handles);
+
+
+
+% --- Executes during object creation, after setting all properties.
+function rdExibeApenasPcSegmentada_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to rdExibeApenasPcSegmentada (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+handles.ExibeApenasPcSegmentada= hObject.Value;
+
+% Update handles structure
+guidata(hObject, handles);
+
 
